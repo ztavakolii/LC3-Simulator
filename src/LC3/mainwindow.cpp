@@ -11,7 +11,14 @@
 #include <unordered_map>
 #include <bitset>
 #include <QMessageBox>
+#include <algorithm>
 using namespace std;
+QString getTwosComplement(int num, int bits);
+
+QString PC="",IR="",MAR="",MDR="",CC="-";
+vector<QString>registerFile(8);
+vector<bool>decodeResult(16);
+vector<bool> ccVec(3);
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -56,11 +63,94 @@ MainWindow::MainWindow(QWidget *parent)
 "3.for every instruction, click on fetch button then decode button then execute button.\n\n"
 "NOTE: you should keep the order of clicking on buttons otherwise it wont work properly.\n\n"
 "You can see the block diagram of this computer in the picture on the right.\n");
+
+    //initialize PC
+    PC=getTwosComplement(12288,16);
+    fill(decodeResult.begin(),decodeResult.end(),false);
+    fill(ccVec.begin(),ccVec.end(),false);
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+
+int twosComplementToInt(const QString& binaryStr) {
+    int n = binaryStr.size();
+    int value = 0;
+
+    // Convert binary string to integer
+    for (int i = 0; i < n; ++i) {
+        if (binaryStr[i] == '1') {
+            value += std::pow(2, n - 1 - i);
+        }
+    }
+
+    // Check if the number is negative
+    if (binaryStr[0] == '1') {
+        value -= std::pow(2, n);
+    }
+
+    return value;
+}
+
+void MainWindow::showContentOfRegisters()
+{
+    int tmp;
+
+    ui->CC->setText(CC);
+
+    tmp=registerFile[0].toInt(nullptr,2);
+    ui->R0_Hex->setText(QString::number(tmp,16));
+    ui->R0_Dec->setText(QString::number(twosComplementToInt(registerFile[0])));
+
+    tmp=registerFile[1].toInt(nullptr,2);
+    ui->R1Hex->setText(QString::number(tmp,16));
+    ui->R1Dec->setText(QString::number(twosComplementToInt(registerFile[1])));
+
+    tmp=registerFile[2].toInt(nullptr,2);
+    ui->R2Hex->setText(QString::number(tmp,16));
+    ui->R2Dec->setText(QString::number(twosComplementToInt(registerFile[2])));
+
+    tmp=registerFile[3].toInt(nullptr,2);
+    ui->R3Hex->setText(QString::number(tmp,16));
+    ui->R3Dec->setText(QString::number(twosComplementToInt(registerFile[3])));
+
+    tmp=registerFile[4].toInt(nullptr,2);
+    ui->R4Hex->setText(QString::number(tmp,16));
+    ui->R4Dec->setText(QString::number(twosComplementToInt(registerFile[4])));
+
+    tmp=registerFile[5].toInt(nullptr,2);
+    ui->R5Hex->setText(QString::number(tmp,16));
+    ui->R5Dec->setText(QString::number(twosComplementToInt(registerFile[5])));
+
+    tmp=registerFile[6].toInt(nullptr,2);
+    ui->R6Hex->setText(QString::number(tmp,16));
+    ui->R6Dec->setText(QString::number(twosComplementToInt(registerFile[6])));
+
+    tmp=registerFile[7].toInt(nullptr,2);
+    ui->R7Hex->setText(QString::number(tmp,16));
+    ui->R7Dec->setText(QString::number(twosComplementToInt(registerFile[7])));
+
+    tmp=PC.toInt(nullptr,2);
+    ui->PCHex->setText(QString::number(tmp,16));
+    ui->PCDec->setText(QString::number(twosComplementToInt(PC)));
+
+    reverse(IR.begin(),IR.end());
+    tmp=IR.toInt(nullptr,2);
+    ui->IRHex->setText(QString::number(tmp,16));
+    ui->IRDec->setText(QString::number(twosComplementToInt(IR)));
+    reverse(IR.begin(),IR.end());
+
+    tmp=MAR.toInt(nullptr,2);
+    ui->MARHex->setText(QString::number(tmp,16));
+    ui->MARDec->setText(QString::number(twosComplementToInt(MAR)));
+
+    tmp=MDR.toInt(nullptr,2);
+    ui->MDRHex->setText(QString::number(tmp,16));
+    ui->MDRDec->setText(QString::number(twosComplementToInt(MDR)));
+
 }
 
 
@@ -91,7 +181,7 @@ void stringToInt(QString&s,int&res){
     }
     else if(s[0]=='b'){
         s.remove(0,1);
-        res=s.toInt(nullptr,2);
+        res=s.toInt(nullptr,2); //error
     }
     else if(s[0]=='x'){
         s.remove(0,1);
@@ -1161,11 +1251,821 @@ void MainWindow::on_assembleButton_clicked()
             }
         }
     }
+    ui->fetchButton->setEnabled(true);
+    ui->decodeButton->setEnabled(true);
+    ui->executeButton->setEnabled(true);
 }
 
 
 
 
+
+void MainWindow::on_fetchButton_clicked()
+{
+    //clk1
+    // MAR<-PC
+    MAR=PC;
+    //PC<-PC+1
+    int PCValue= PC.toInt(nullptr,2);
+    PCValue++;
+    PC=getTwosComplement(PCValue,16);
+    //clk2
+    //MDR<-M[MAR]
+    int MARValue=MAR.toInt(nullptr,2);
+    QTableWidgetItem*item=ui->memoryTable->item(MARValue,2);
+    QString M_MAR=item->text();
+    int M_MARValue=M_MAR.toInt(nullptr,16);
+    MDR=getTwosComplement(M_MARValue,16);
+    //clk3
+    //IR<-MDR
+    IR=MDR;
+    reverse(IR.begin(),IR.end());
+    showContentOfRegisters();
+}
+
+
+
+void MainWindow::on_decodeButton_clicked()
+{
+    //clk4
+    fill(decodeResult.begin(),decodeResult.end(),false);
+
+    QString opCode="";
+   // opCode+=(IR[15]+IR[14])+(IR[13]+IR[12]);
+    opCode+=IR[15];
+    opCode+=IR[14];
+    opCode+=IR[13];
+    opCode+=IR[12];
+    int opCodeValue=opCode.toInt(nullptr,2);
+
+    decodeResult[opCodeValue]=true;
+}
+
+
+void MainWindow::on_executeButton_clicked()
+{
+    //after clk4
+    if(decodeResult[0]){
+        // BR
+        BR();
+    }
+    else if(decodeResult[1]){
+        // ADD
+        ADD();
+    }
+    else if(decodeResult[2]){
+        // LD
+        LD();
+    }
+    else if(decodeResult[3]){
+        // ST
+        ST();
+    }
+    else if(decodeResult[4]){
+        if(IR[11]=='1'){
+         // JSR
+            JSR();
+        }
+        else{
+            // JSRR
+            JSRR();
+        }
+    }
+    else if(decodeResult[5]){
+        // AND
+        AND();
+    }
+    else if(decodeResult[6]){
+        //LDR
+        LDR();
+    }
+    else if(decodeResult[7]){
+        //STR
+        STR();
+    }
+    else if(decodeResult[8]){
+        //RTI
+    }
+    else if(decodeResult[9]){
+        // NOT
+        NOT();
+    }
+    else if(decodeResult[10]){
+        // LDI
+        LDI();
+    }
+    else if(decodeResult[11]){
+        // STI
+        STI();
+    }
+    else if(decodeResult[12]){
+        // JMP
+        if(IR=="0000001110000011")
+            RET();
+        else JMP();
+    }
+    else if(decodeResult[13]){
+        // RESERVED
+    }
+    else if(decodeResult[14]){
+        // LEA
+        LEA();
+    }
+    else if(decodeResult[15]){
+        // TRAP
+        if(IR=="1010010000001111")
+            HALT();
+    }
+}
+
+
+void MainWindow::ADD(){
+    int dst,src1,src2;
+    QString value1,value2;
+    QString s="";
+    //s+=(IR[11]+IR[10]+IR[9]);
+    s+=IR[11];
+    s+=IR[10];
+    s+=IR[9];
+
+    dst=s.toInt(nullptr,2);
+    s="";
+    //s+=(IR[8]+IR[7]+IR[6]);
+    s+=IR[8];
+    s+=IR[7];
+    s+=IR[6];
+
+    src1=s.toInt(nullptr,2);
+    value1=registerFile[src1];
+    if(IR[5]=='0'){
+        s="";
+       // s+=(IR[2]+IR[1]+IR[0]);
+        s+=IR[2];
+        s+=IR[1];
+        s+=IR[0];
+
+        src2=s.toInt(nullptr,2);
+        value2=registerFile[src2];
+    }
+    else{
+        s="";
+        //s+=(IR[4]+IR[3]+IR[2]+IR[1]+IR[0]);
+        s+=IR[4];
+        s+=IR[3];
+        s+=IR[2];
+        s+=IR[1];
+        s+=IR[0];
+
+        value2=signExtend(s,16);
+    }
+
+    QChar carry='0';
+    for(int i=15;i>=0;i--){
+        if(value1[i]=='0' && value2[i]=='0'){
+            registerFile[dst][i]=carry;
+            carry='0';
+        }
+        else if((value1[i]=='0' && value2[i]=='1')||(value1[i]=='1' && value2[i]=='0')){
+            if(carry=='1')
+                registerFile[dst][i]='0';
+            else registerFile[dst][i]='1';
+        }
+        else if(value1[i]=='1'&&value2[i]=='1'){
+            registerFile[dst][i]=carry;
+            carry='1';
+        }
+    }
+    bool b=true;
+    for(int i=0;i<16;i++){
+        if(registerFile[dst][i]=='1'){
+            b=false;
+            break;
+        }
+    }
+    if(b){
+        CC="Z";
+        fill(ccVec.begin(),ccVec.end(),false);
+        ccVec[1]=true;
+    }
+    else{
+        if(registerFile[dst][0]=='0'){
+            CC="P";
+            fill(ccVec.begin(),ccVec.end(),false);
+            ccVec[2]=true;
+        }
+        else {
+            CC="N";
+            fill(ccVec.begin(),ccVec.end(),false);
+            ccVec[0]=true;
+        }
+    }
+
+    showContentOfRegisters();
+}
+
+void MainWindow::AND()
+{
+    int dst,src1,src2;
+    QString value1,value2;
+    QString s="";
+    //s+=(IR[11]+IR[10]+IR[9]);
+    s+=IR[11];
+    s+=IR[10];
+    s+=IR[9];
+
+    dst=s.toInt(nullptr,2);
+    s="";
+    //s+=(IR[8]+IR[7]+IR[6]);
+    s+=IR[8];
+    s+=IR[7];
+    s+=IR[6];
+
+    src1=s.toInt(nullptr,2);
+    value1=registerFile[src1];
+    if(IR[5]=='0'){
+        s="";
+        // s+=(IR[2]+IR[1]+IR[0]);
+        s+=IR[2];
+        s+=IR[1];
+        s+=IR[0];
+
+        src2=s.toInt(nullptr,2);
+        value2=registerFile[src2];
+    }
+    else{
+        s="";
+        //s+=(IR[4]+IR[3]+IR[2]+IR[1]+IR[0]);
+        s+=IR[4];
+        s+=IR[3];
+        s+=IR[2];
+        s+=IR[1];
+        s+=IR[0];
+
+        value2=signExtend(s,16);
+    }
+
+
+    for(int i=15;i>=0;i--){
+        if(value1[i]=='1' && value2[i]=='1')
+            registerFile[dst][i]='1';
+        else registerFile[dst][i]='0';
+    }
+
+    bool b=true;
+    for(int i=0;i<16;i++){
+        if(registerFile[dst][i]=='1'){
+            b=false;
+            break;
+        }
+    }
+    if(b){
+        CC="Z";
+        fill(ccVec.begin(),ccVec.end(),false);
+        ccVec[1]=true;
+    }
+    else{
+        if(registerFile[dst][0]=='0'){
+            CC="P";
+            fill(ccVec.begin(),ccVec.end(),false);
+            ccVec[2]=true;
+        }
+        else {
+            CC="N";
+            fill(ccVec.begin(),ccVec.end(),false);
+            ccVec[0]=true;
+        }
+    }
+
+    showContentOfRegisters();
+}
+
+void MainWindow::NOT()
+{
+    int dst,src;
+    QString value;
+    QString s="";
+    //s+=(IR[11]+IR[10]+IR[9]);
+    s+=IR[11];
+    s+=IR[10];
+    s+=IR[9];
+
+    dst=s.toInt(nullptr,2);
+    s="";
+    //s+=(IR[8]+IR[7]+IR[6]);
+    s+=IR[8];
+    s+=IR[7];
+    s+=IR[6];
+
+    src=s.toInt(nullptr,2);
+    value=registerFile[src];
+
+    for(int i=15;i>=0;i--){
+        if(value[i]=='0')
+            registerFile[dst][i]='1';
+        else registerFile[dst][i]='0';
+    }
+
+    bool b=true;
+    for(int i=0;i<16;i++){
+        if(registerFile[dst][i]=='1'){
+            b=false;
+            break;
+        }
+    }
+    if(b){
+        CC="Z";
+        fill(ccVec.begin(),ccVec.end(),false);
+        ccVec[1]=true;
+    }
+    else{
+        if(registerFile[dst][0]=='0'){
+            CC="P";
+            fill(ccVec.begin(),ccVec.end(),false);
+            ccVec[2]=true;
+        }
+        else {
+            CC="N";
+            fill(ccVec.begin(),ccVec.end(),false);
+            ccVec[0]=true;
+        }
+    }
+
+    showContentOfRegisters();
+}
+
+QString Adder(QString value1,QString value2){
+    QString res="";
+
+    QChar carry='0';
+    for(int i=15;i>=0;i--){
+        if(value1[i]=='0' && value2[i]=='0'){
+            res[i]=carry;
+            carry='0';
+        }
+        else if((value1[i]=='0' && value2[i]=='1')||(value1[i]=='1' && value2[i]=='0')){
+            if(carry=='1')
+                res[i]='0';
+            else res[i]='1';
+        }
+        else if(value1[i]=='1'&&value2[i]=='1'){
+            res[i]=carry;
+            carry='1';
+        }
+    }
+    return res;
+}
+
+void MainWindow::LD()
+{
+    int dst;
+    QString s="";
+    s+=IR[11];
+    s+=IR[10];
+    s+=IR[9];
+
+    dst=s.toInt(nullptr,2);
+
+    s="";
+    s+=IR[8];
+    s+=IR[7];
+    s+=IR[6];
+    s+=IR[5];
+    s+=IR[4];
+    s+=IR[3];
+    s+=IR[2];
+    s+=IR[1];
+    s+=IR[0];
+
+    s=signExtend(s,16);
+    MAR=Adder(PC,s); //s == offset
+    //MDR<-M[MAR]
+    int MARValue=MAR.toInt(nullptr,2);
+    QTableWidgetItem*item=ui->memoryTable->item(MARValue,2);
+    QString M_MAR=item->text();
+    int M_MARValue=M_MAR.toInt(nullptr,16);
+    MDR=getTwosComplement(M_MARValue,16);
+
+    // DR<-MDR
+    registerFile[dst]=MDR;
+
+    bool b=true;
+    for(int i=0;i<16;i++){
+        if(registerFile[dst][i]=='1'){
+            b=false;
+            break;
+        }
+    }
+    if(b){
+        CC="Z";
+        fill(ccVec.begin(),ccVec.end(),false);
+        ccVec[1]=true;
+    }
+    else{
+        if(registerFile[dst][0]=='0'){
+            CC="P";
+            fill(ccVec.begin(),ccVec.end(),false);
+            ccVec[2]=true;
+        }
+        else {
+            CC="N";
+            fill(ccVec.begin(),ccVec.end(),false);
+            ccVec[0]=true;
+        }
+    }
+
+
+    showContentOfRegisters();
+}
+
+void MainWindow::LDI()
+{
+    int dst;
+    QString s="";
+    s+=IR[11];
+    s+=IR[10];
+    s+=IR[9];
+
+    dst=s.toInt(nullptr,2);
+
+    s="";
+    s+=IR[8];
+    s+=IR[7];
+    s+=IR[6];
+    s+=IR[5];
+    s+=IR[4];
+    s+=IR[3];
+    s+=IR[2];
+    s+=IR[1];
+    s+=IR[0];
+
+    s=signExtend(s,16);
+    MAR=Adder(PC,s); //s == offset
+    //MDR<-M[MAR]
+    int MARValue=MAR.toInt(nullptr,2);
+    QTableWidgetItem*item1=ui->memoryTable->item(MARValue,2);
+    QString M_MAR=item1->text();
+    int M_MARValue=M_MAR.toInt(nullptr,16);
+    MDR=getTwosComplement(M_MARValue,16);
+
+    showContentOfRegisters();
+
+    //MAR<-MDR
+    MAR=MDR;
+    MARValue=MAR.toInt(nullptr,2);
+    QTableWidgetItem*item2=ui->memoryTable->item(MARValue,2);
+    M_MAR=item2->text();
+    M_MARValue=M_MAR.toInt(nullptr,16);
+    MDR=getTwosComplement(M_MARValue,16);
+
+    //DR<-MDR
+    registerFile[dst]=MDR;
+
+    bool b=true;
+    for(int i=0;i<16;i++){
+        if(registerFile[dst][i]=='1'){
+            b=false;
+            break;
+        }
+    }
+    if(b){
+        CC="Z";
+        fill(ccVec.begin(),ccVec.end(),false);
+        ccVec[1]=true;
+    }
+    else{
+        if(registerFile[dst][0]=='0'){
+            CC="P";
+            fill(ccVec.begin(),ccVec.end(),false);
+            ccVec[2]=true;
+        }
+        else {
+            CC="N";
+            fill(ccVec.begin(),ccVec.end(),false);
+            ccVec[0]=true;
+        }
+    }
+
+
+    showContentOfRegisters();
+}
+
+void MainWindow::LDR()
+{
+    int dst,baseR;
+    QString s="";
+    s+=IR[11];
+    s+=IR[10];
+    s+=IR[9];
+
+    dst=s.toInt(nullptr,2);
+
+    s="";
+    s+=IR[8];
+    s+=IR[7];
+    s+=IR[6];
+
+    baseR=s.toInt(nullptr,2);
+
+    s="";
+    s+=IR[5];
+    s+=IR[4];
+    s+=IR[3];
+    s+=IR[2];
+    s+=IR[1];
+    s+=IR[0];
+
+    s=signExtend(s,16);
+
+    MAR=Adder(registerFile[baseR],s); //s == offset
+    //MDR<-M[MAR]
+    int MARValue=MAR.toInt(nullptr,2);
+    QTableWidgetItem*item1=ui->memoryTable->item(MARValue,2);
+    QString M_MAR=item1->text();
+    int M_MARValue=M_MAR.toInt(nullptr,16);
+    MDR=getTwosComplement(M_MARValue,16);
+    //DR<-MDR
+    registerFile[dst]=MDR;
+
+    bool b=true;
+    for(int i=0;i<16;i++){
+        if(registerFile[dst][i]=='1'){
+            b=false;
+            break;
+        }
+    }
+    if(b){
+        CC="Z";
+        fill(ccVec.begin(),ccVec.end(),false);
+        ccVec[1]=true;
+    }
+    else{
+        if(registerFile[dst][0]=='0'){
+            CC="P";
+            fill(ccVec.begin(),ccVec.end(),false);
+            ccVec[2]=true;
+        }
+        else {
+            CC="N";
+            fill(ccVec.begin(),ccVec.end(),false);
+            ccVec[0]=true;
+        }
+    }
+
+
+    showContentOfRegisters();
+}
+
+void MainWindow::LEA()
+{
+    int dst;
+    QString s="";
+    s+=IR[11];
+    s+=IR[10];
+    s+=IR[9];
+
+    dst=s.toInt(nullptr,2);
+
+    s="";
+    s+=IR[8];
+    s+=IR[7];
+    s+=IR[6];
+    s+=IR[5];
+    s+=IR[4];
+    s+=IR[3];
+    s+=IR[2];
+    s+=IR[1];
+    s+=IR[0];
+
+    s=signExtend(s,16);
+    registerFile[dst]=Adder(PC,s);
+
+    showContentOfRegisters();
+}
+
+void MainWindow::ST()
+{
+    int src;
+    QString s="";
+    s+=IR[11];
+    s+=IR[10];
+    s+=IR[9];
+
+    src=s.toInt(nullptr,2);
+
+    s="";
+    s+=IR[8];
+    s+=IR[7];
+    s+=IR[6];
+    s+=IR[5];
+    s+=IR[4];
+    s+=IR[3];
+    s+=IR[2];
+    s+=IR[1];
+    s+=IR[0];
+
+    s=signExtend(s,16);
+    MAR=Adder(PC,s); //s == offset
+
+    //MDR<-SR
+    MDR=registerFile[src];
+    //M[MAR]<-MDR
+    int MARValue=MAR.toInt(nullptr,2);
+    QTableWidgetItem*item=ui->memoryTable->item(MARValue,2);
+    item->setText(QString::number(twosComplementToInt(MDR),16));
+
+    showContentOfRegisters();
+}
+
+void MainWindow::STI()
+{
+    int src;
+    QString s="";
+    s+=IR[11];
+    s+=IR[10];
+    s+=IR[9];
+
+    src=s.toInt(nullptr,2);
+
+    s="";
+    s+=IR[8];
+    s+=IR[7];
+    s+=IR[6];
+    s+=IR[5];
+    s+=IR[4];
+    s+=IR[3];
+    s+=IR[2];
+    s+=IR[1];
+    s+=IR[0];
+
+    s=signExtend(s,16);
+    MAR=Adder(PC,s); //s == offset
+    //MDR<-M[MAR]
+    int MARValue=MAR.toInt(nullptr,2);
+    QTableWidgetItem*item1=ui->memoryTable->item(MARValue,2);
+    QString M_MAR=item1->text();
+    int M_MARValue=M_MAR.toInt(nullptr,16);
+    MDR=getTwosComplement(M_MARValue,16);
+
+    showContentOfRegisters();
+
+    //MAR<-MDR
+    MAR=MDR;
+
+    //MDR<-SR
+    MDR=registerFile[src];
+
+    //M[MAR]<-MDR
+    MARValue=MAR.toInt(nullptr,2);
+    QTableWidgetItem*item2=ui->memoryTable->item(MARValue,2);
+    item2->setText(QString::number(twosComplementToInt(MDR),16));
+
+    showContentOfRegisters();
+}
+
+void MainWindow::STR()
+{
+    int src,baseR;
+    QString s="";
+    s+=IR[11];
+    s+=IR[10];
+    s+=IR[9];
+
+    src=s.toInt(nullptr,2);
+
+    s="";
+    s+=IR[8];
+    s+=IR[7];
+    s+=IR[6];
+
+    baseR=s.toInt(nullptr,2);
+
+    s="";
+    s+=IR[5];
+    s+=IR[4];
+    s+=IR[3];
+    s+=IR[2];
+    s+=IR[1];
+    s+=IR[0];
+
+    s=signExtend(s,16);
+
+    MAR=Adder(registerFile[baseR],s); //s == offset
+
+    // MDR<-SR
+    MDR=registerFile[src];
+
+    //M[MAR]<-MDR
+    int MARValue=MAR.toInt(nullptr,2);
+    QTableWidgetItem*item1=ui->memoryTable->item(MARValue,2);
+    item1->setText(QString::number(twosComplementToInt(MDR),16));
+
+    showContentOfRegisters();
+}
+
+void MainWindow::BR()
+{
+    bool n,z,p;
+    n= IR[11]=='1'?true:false;
+    z= IR[10]=='1'?true:false;
+    p= IR[9]=='1'?true:false;
+
+    QString s="";
+    s+=IR[8];
+    s+=IR[7];
+    s+=IR[6];
+    s+=IR[5];
+    s+=IR[4];
+    s+=IR[3];
+    s+=IR[2];
+    s+=IR[1];
+    s+=IR[0];
+
+    s=signExtend(s,16);
+
+    if((ccVec[0]&& n)||(ccVec[1]&& z)||(ccVec[2]&& p)||(n==false && z==false && p==false)){
+        PC=Adder(PC,s);
+    }
+
+    showContentOfRegisters();
+}
+
+void MainWindow::JMP()
+{
+    int baseR;
+    QString s="";
+    s+=IR[8];
+    s+=IR[7];
+    s+=IR[6];
+
+    baseR=s.toInt(nullptr,2);
+
+    PC=Adder(registerFile[baseR],signExtend("0",16));
+
+    showContentOfRegisters();
+}
+
+void MainWindow::RET()
+{
+    PC=Adder(registerFile[7],signExtend("0",16));
+
+    showContentOfRegisters();
+}
+
+void MainWindow::JSR()
+{
+    QString s="";
+    s+=IR[10];
+    s+=IR[9];
+    s+=IR[8];
+    s+=IR[7];
+    s+=IR[6];
+    s+=IR[5];
+    s+=IR[4];
+    s+=IR[3];
+    s+=IR[2];
+    s+=IR[1];
+    s+=IR[0];
+
+    s=signExtend(s,16);
+
+    QString temp=PC;
+    PC=Adder(PC,s);
+    registerFile[7]=temp;
+
+    showContentOfRegisters();
+}
+
+void MainWindow::JSRR()
+{
+    int baseR;
+    QString s="";
+    s+=IR[8];
+    s+=IR[7];
+    s+=IR[6];
+
+    baseR=s.toInt(nullptr,2);
+
+    QString temp=PC;
+    PC=registerFile[baseR];
+    registerFile[7]=temp;
+
+    showContentOfRegisters();
+}
+
+void MainWindow::HALT()
+{
+    ui->fetchButton->setEnabled(false);
+    ui->decodeButton->setEnabled(false);
+    ui->executeButton->setEnabled(false);
+    PC=getTwosComplement(12288,16);
+
+    QMessageBox message;
+    message.setText("The program has been successfully executed.");
+    message.setWindowIcon(QIcon(":/fonts & pictures/images/icon.png"));
+    message.setStyleSheet("color: rgb(255, 255, 255); background-color: rgb(25,35,75);");
+    message.setIcon(QMessageBox::Information);
+    message.exec();
+}
 
 
 
