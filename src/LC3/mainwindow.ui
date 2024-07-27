@@ -67664,6 +67664,9 @@ background-color: none;</string>
       <property name="text">
        <string/>
       </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
      </widget>
      <widget class="QLabel" name="label_55">
       <property name="geometry">

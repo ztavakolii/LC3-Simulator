@@ -16,8 +16,9 @@ public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-private slots:
+public slots:
     void showContentOfRegisters();
+
 
     void on_codeEditor_currentCharFormatChanged(const QTextCharFormat &format);
 
@@ -28,6 +29,8 @@ private slots:
     void on_decodeButton_clicked();
 
     void on_executeButton_clicked();
+
+public:
 
     void ADD();
 
@@ -60,6 +63,7 @@ private slots:
     void JSRR();
 
     void HALT();
+
 
 
 private:

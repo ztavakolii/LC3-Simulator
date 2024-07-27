@@ -14,9 +14,10 @@
 #include <algorithm>
 using namespace std;
 QString getTwosComplement(int num, int bits);
+QString signExtend(QString binString,int newLength);
 
-QString PC="",IR="",MAR="",MDR="",CC="-";
-vector<QString>registerFile(8);
+QString PC="0",IR="0",MAR="0",MDR="0",CC="-";
+vector<QString>registerFile({"0","0","0","0","0","0","0","0"});
 vector<bool>decodeResult(16);
 vector<bool> ccVec(3);
 
@@ -68,6 +69,11 @@ MainWindow::MainWindow(QWidget *parent)
     PC=getTwosComplement(12288,16);
     fill(decodeResult.begin(),decodeResult.end(),false);
     fill(ccVec.begin(),ccVec.end(),false);
+
+    for(int i=0;i<8;i++){
+        registerFile[i]=signExtend(registerFile[i],16);
+    }
+    showContentOfRegisters();
 }
 
 MainWindow::~MainWindow()
@@ -278,21 +284,25 @@ void MainWindow::on_assembleButton_clicked()
                 if(symbolTable.find(sections[0])==symbolTable.end()
                     && sections[1]!="DEC" && sections[1]!="HEX"){
                     sections[0].remove(',');  //posibility of error)
-                    symbolTable.insert({sections[0],{0,(QString::number(memoryCellNumber))}});
-                    symbolTable.insert({sections[0]+",",{0,(QString::number(memoryCellNumber))}});
+                    symbolTable.insert({sections[0],{0,(QString::number(memoryCellNumber-1))}});
+                    symbolTable.insert({sections[0]+",",{0,(QString::number(memoryCellNumber-1))}});
                 }
                 else if(symbolTable.find(sections[0])==symbolTable.end()
                            && (sections[1]=="DEC" || sections[1]=="HEX")){
                     sections[0].remove(',');
                     if(sections[1]=="DEC"){
-                        int res=sections[2].toInt(nullptr,10);
-                        symbolTable.insert({sections[0],{0,QString::number(res)}});
-                        symbolTable.insert({sections[0]+",",{0,QString::number(res)}});
+//                        int res=sections[2].toInt(nullptr,10);
+//                        symbolTable.insert({sections[0],{0,QString::number(res)}});
+//                        symbolTable.insert({sections[0]+",",{0,QString::number(res)}});
+                        symbolTable.insert({sections[0],{0,(QString::number(memoryCellNumber-1))}});
+                        symbolTable.insert({sections[0]+",",{0,(QString::number(memoryCellNumber-1))}});
                     }
                     else if(sections[0]=="HEX"){
-                        int res=sections[2].toInt(nullptr,16);
-                        symbolTable.insert({sections[0],{0,QString::number(res)}});
-                        symbolTable.insert({sections[0]+",",{0,QString::number(res)}});
+//                        int res=sections[2].toInt(nullptr,16);
+//                        symbolTable.insert({sections[0],{0,QString::number(res)}});
+//                        symbolTable.insert({sections[0]+",",{0,QString::number(res)}});
+                        symbolTable.insert({sections[0],{0,(QString::number(memoryCellNumber-1))}});
+                        symbolTable.insert({sections[0]+",",{0,(QString::number(memoryCellNumber-1))}});
                     }
                 }
             }
@@ -438,7 +448,8 @@ void MainWindow::on_assembleButton_clicked()
                     binString+=symbolTable[sections[1]].second;
                     if(symbolTable.find(sections[2])!=symbolTable.end()){
                        // binString+=signExtend(symbolTable[sections[2]].second,9);
-                        binString+=getTwosComplement(symbolTable[sections[2]].second.toInt(),9);
+//                        binString+=getTwosComplement(symbolTable[sections[2]].second.toInt(),9);
+                            binString+=getTwosComplement(symbolTable[sections[2]].second.toInt()-(memoryCellNumber+1),9);
                     }
                     else{
                         int res=0;
@@ -467,7 +478,9 @@ void MainWindow::on_assembleButton_clicked()
                     binString+=symbolTable["LDI"].second;
                     binString+=symbolTable[sections[1]].second;
                     if(symbolTable.find(sections[2])!=symbolTable.end()){
-                        binString+=getTwosComplement(symbolTable[sections[2]].second.toInt(),9);
+                       // binString+=getTwosComplement(symbolTable[sections[2]].second.toInt(),9);
+                        binString+=getTwosComplement(symbolTable[sections[2]].second.toInt()-(memoryCellNumber+1),9);
+
                     }
                     else{
                         int res=0;
@@ -527,7 +540,9 @@ void MainWindow::on_assembleButton_clicked()
                     binString+=symbolTable["LEA"].second;
                     binString+=symbolTable[sections[1]].second;
                     if(symbolTable.find(sections[2])!=symbolTable.end()){
-                    binString+=getTwosComplement(symbolTable[sections[2]].second.toInt(),9);
+                    //binString+=getTwosComplement(symbolTable[sections[2]].second.toInt(),9);
+                        binString+=getTwosComplement(symbolTable[sections[2]].second.toInt()-(memoryCellNumber+1),9);
+
                     }
                     else{
                     int res=0;
@@ -556,7 +571,9 @@ void MainWindow::on_assembleButton_clicked()
                     binString+=symbolTable["ST"].second;
                     binString+=symbolTable[sections[1]].second;
                     if(symbolTable.find(sections[2])!=symbolTable.end()){
-                    binString+=getTwosComplement(symbolTable[sections[2]].second.toInt(),9);
+                    //binString+=getTwosComplement(symbolTable[sections[2]].second.toInt(),9);
+                    binString+=getTwosComplement(symbolTable[sections[2]].second.toInt()-(memoryCellNumber+1),9);
+
                     }
                     else{
                     int res=0;
@@ -585,7 +602,9 @@ void MainWindow::on_assembleButton_clicked()
                     binString+=symbolTable["STI"].second;
                     binString+=symbolTable[sections[1]].second;
                     if(symbolTable.find(sections[2])!=symbolTable.end()){
-                    binString+=getTwosComplement(symbolTable[sections[2]].second.toInt(),9);
+                    //binString+=getTwosComplement(symbolTable[sections[2]].second.toInt(),9);
+                    binString+=getTwosComplement(symbolTable[sections[2]].second.toInt()-(memoryCellNumber+1),9);
+
                     }
                     else{
                     int res=0;
@@ -644,7 +663,9 @@ void MainWindow::on_assembleButton_clicked()
                 else{
                     binString+=symbolTable[sections[0]].second;
                     if(symbolTable.find(sections[1])!=symbolTable.end()){
-                    binString+=getTwosComplement(symbolTable[sections[1]].second.toInt(),9);
+                    //binString+=getTwosComplement(symbolTable[sections[1]].second.toInt(),9);
+                    binString+=getTwosComplement(symbolTable[sections[1]].second.toInt()-(memoryCellNumber+1),9);
+
                     }
                     else{
                     int res=0;
@@ -714,7 +735,8 @@ void MainWindow::on_assembleButton_clicked()
                 else{
                     binString+=symbolTable["JSR"].second;
                     if(symbolTable.find(sections[1])!=symbolTable.end()){
-                    binString+=getTwosComplement(symbolTable[sections[1]].second.toInt(),11);
+                    //binString+=getTwosComplement(symbolTable[sections[1]].second.toInt(),11);
+                     binString+=getTwosComplement(symbolTable[sections[1]].second.toInt()-(memoryCellNumber+1),11);
                     }
                     else{
                     int res=0;
@@ -902,7 +924,9 @@ void MainWindow::on_assembleButton_clicked()
                     binString+=symbolTable["LD"].second;
                     binString+=symbolTable[sections[2]].second;
                     if(symbolTable.find(sections[3])!=symbolTable.end()){
-                       binString+=getTwosComplement(symbolTable[sections[3]].second.toInt(),9);
+                       //binString+=getTwosComplement(symbolTable[sections[3]].second.toInt(),9);
+                        binString+=getTwosComplement(symbolTable[sections[3]].second.toInt()-(memoryCellNumber+1),9);
+
                     }
                     else{
                         int res=0;
@@ -931,7 +955,8 @@ void MainWindow::on_assembleButton_clicked()
                     binString+=symbolTable["LDI"].second;
                     binString+=symbolTable[sections[2]].second;
                     if(symbolTable.find(sections[3])!=symbolTable.end()){
-                        binString+=getTwosComplement(symbolTable[sections[3]].second.toInt(),9);
+                        //binString+=getTwosComplement(symbolTable[sections[3]].second.toInt(),9);
+                        binString+=getTwosComplement(symbolTable[sections[3]].second.toInt()-(memoryCellNumber+1),9);
                     }
                     else{
                         int res=0;
@@ -990,7 +1015,8 @@ void MainWindow::on_assembleButton_clicked()
                     binString+=symbolTable["LEA"].second;
                     binString+=symbolTable[sections[2]].second;
                     if(symbolTable.find(sections[3])!=symbolTable.end()){
-                        binString+=getTwosComplement(symbolTable[sections[3]].second.toInt(),9);
+//                        binString+=getTwosComplement(symbolTable[sections[3]].second.toInt(),9);
+                        binString+=getTwosComplement(symbolTable[sections[3]].second.toInt()-(memoryCellNumber+1),9);
                     }
                     else{
                         int res=0;
@@ -1019,7 +1045,8 @@ void MainWindow::on_assembleButton_clicked()
                     binString+=symbolTable["ST"].second;
                     binString+=symbolTable[sections[2]].second;
                     if(symbolTable.find(sections[3])!=symbolTable.end()){
-                         binString+=getTwosComplement(symbolTable[sections[3]].second.toInt(),9);
+                         //binString+=getTwosComplement(symbolTable[sections[3]].second.toInt(),9);
+                        binString+=getTwosComplement(symbolTable[sections[3]].second.toInt()-(memoryCellNumber+1),9);
                     }
                     else{
                         int res=0;
@@ -1048,7 +1075,8 @@ void MainWindow::on_assembleButton_clicked()
                     binString+=symbolTable["STI"].second;
                     binString+=symbolTable[sections[2]].second;
                     if(symbolTable.find(sections[3])!=symbolTable.end()){
-                        binString+=getTwosComplement(symbolTable[sections[3]].second.toInt(),9);
+                       // binString+=getTwosComplement(symbolTable[sections[3]].second.toInt(),9);
+                        binString+=getTwosComplement(symbolTable[sections[3]].second.toInt()-(memoryCellNumber+1),9);
                     }
                     else{
                         int res=0;
@@ -1106,7 +1134,8 @@ void MainWindow::on_assembleButton_clicked()
                     else{
                     binString+=symbolTable[sections[1]].second;
                     if(symbolTable.find(sections[2])!=symbolTable.end()){
-                        binString+=getTwosComplement(symbolTable[sections[2]].second.toInt(),9);
+                        //binString+=getTwosComplement(symbolTable[sections[2]].second.toInt(),9);
+                        binString+=getTwosComplement(symbolTable[sections[2]].second.toInt()-(memoryCellNumber+1),9);
                     }
                     else{
                         int res=0;
@@ -1176,7 +1205,8 @@ void MainWindow::on_assembleButton_clicked()
                     else{
                     binString+=symbolTable["JSR"].second;
                     if(symbolTable.find(sections[2])!=symbolTable.end()){
-                        binString+=getTwosComplement(symbolTable[sections[2]].second.toInt(),11);
+                        //binString+=getTwosComplement(symbolTable[sections[2]].second.toInt(),11);
+                        binString+=getTwosComplement(symbolTable[sections[2]].second.toInt()-(memoryCellNumber+1),11);
                     }
                     else{
                         int res=0;
@@ -1233,15 +1263,16 @@ void MainWindow::on_assembleButton_clicked()
                     }
                 }
                 else if(sections[1]=="DEC"){
-                    binString+=getTwosComplement(symbolTable[sections[0]].second.toInt(),16);
+                    binString+=getTwosComplement(/*symbolTable[sections[0]].second*/sections[2].toInt(),16);
                     QTableWidgetItem* item=new QTableWidgetItem();
-                    int res=binString.toInt(nullptr,2);
+                    //int res=binString.toInt(nullptr,2); //posibility of error
+                    int res=twosComplementToInt(binString);
                     item->setText(QString::number(res,16).toUpper());
                     item->setData(Qt::TextAlignmentRole,Qt::AlignCenter);
                     ui->memoryTable->setItem(++memoryCellNumber,2,item);
                 }
                 else if(sections[1]=="HEX"){
-                    binString+=getTwosComplement(symbolTable[sections[0]].second.toInt(nullptr,16),16);
+                    binString+=getTwosComplement(/*symbolTable[sections[0]].second*/sections[2].toInt(nullptr,16),16);
                     QTableWidgetItem* item=new QTableWidgetItem();
                     int res=binString.toInt(nullptr,2);
                     item->setText(QString::number(res,16).toUpper());
@@ -1291,7 +1322,7 @@ void MainWindow::on_decodeButton_clicked()
     fill(decodeResult.begin(),decodeResult.end(),false);
 
     QString opCode="";
-   // opCode+=(IR[15]+IR[14])+(IR[13]+IR[12]);
+
     opCode+=IR[15];
     opCode+=IR[14];
     opCode+=IR[13];
@@ -1383,14 +1414,14 @@ void MainWindow::ADD(){
     int dst,src1,src2;
     QString value1,value2;
     QString s="";
-    //s+=(IR[11]+IR[10]+IR[9]);
+
     s+=IR[11];
     s+=IR[10];
     s+=IR[9];
 
     dst=s.toInt(nullptr,2);
     s="";
-    //s+=(IR[8]+IR[7]+IR[6]);
+
     s+=IR[8];
     s+=IR[7];
     s+=IR[6];
@@ -1399,7 +1430,7 @@ void MainWindow::ADD(){
     value1=registerFile[src1];
     if(IR[5]=='0'){
         s="";
-       // s+=(IR[2]+IR[1]+IR[0]);
+
         s+=IR[2];
         s+=IR[1];
         s+=IR[0];
@@ -1409,7 +1440,7 @@ void MainWindow::ADD(){
     }
     else{
         s="";
-        //s+=(IR[4]+IR[3]+IR[2]+IR[1]+IR[0]);
+
         s+=IR[4];
         s+=IR[3];
         s+=IR[2];
@@ -1468,14 +1499,14 @@ void MainWindow::AND()
     int dst,src1,src2;
     QString value1,value2;
     QString s="";
-    //s+=(IR[11]+IR[10]+IR[9]);
+
     s+=IR[11];
     s+=IR[10];
     s+=IR[9];
 
     dst=s.toInt(nullptr,2);
     s="";
-    //s+=(IR[8]+IR[7]+IR[6]);
+
     s+=IR[8];
     s+=IR[7];
     s+=IR[6];
@@ -1484,7 +1515,7 @@ void MainWindow::AND()
     value1=registerFile[src1];
     if(IR[5]=='0'){
         s="";
-        // s+=(IR[2]+IR[1]+IR[0]);
+
         s+=IR[2];
         s+=IR[1];
         s+=IR[0];
@@ -1494,7 +1525,7 @@ void MainWindow::AND()
     }
     else{
         s="";
-        //s+=(IR[4]+IR[3]+IR[2]+IR[1]+IR[0]);
+
         s+=IR[4];
         s+=IR[3];
         s+=IR[2];
@@ -1544,14 +1575,14 @@ void MainWindow::NOT()
     int dst,src;
     QString value;
     QString s="";
-    //s+=(IR[11]+IR[10]+IR[9]);
+
     s+=IR[11];
     s+=IR[10];
     s+=IR[9];
 
     dst=s.toInt(nullptr,2);
     s="";
-    //s+=(IR[8]+IR[7]+IR[6]);
+
     s+=IR[8];
     s+=IR[7];
     s+=IR[6];
@@ -1594,7 +1625,7 @@ void MainWindow::NOT()
 }
 
 QString Adder(QString value1,QString value2){
-    QString res="";
+    QString res="0000000000000000";
 
     QChar carry='0';
     for(int i=15;i>=0;i--){
