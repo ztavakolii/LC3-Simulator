@@ -3,21 +3,16 @@
         <file>fonts/Always Optimistic.ttf</file>
         <file>fonts/Ready to Party.ttf</file>
         <file>images/assemble1.png</file>
-        <file>images/assemble2.png</file>
         <file>images/background.jpg</file>
         <file>images/code editor.png</file>
         <file>images/decode1.png</file>
-        <file>images/decode2.png</file>
         <file>images/execute1.png</file>
         <file>images/execute2.png</file>
-        <file>images/favicon.png</file>
         <file>images/fetch.png</file>
         <file>images/help.png</file>
         <file>images/icon.png</file>
         <file>images/ram.png</file>
         <file>images/bottun.png</file>
-        <file>images/btn5.png</file>
-        <file>images/btn4.png</file>
         <file>images/lc3-picture.jpg</file>
     </qresource>
 </RCC>
